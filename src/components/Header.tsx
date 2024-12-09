@@ -1,9 +1,12 @@
 import React from 'react';
-import { Search, Settings, Users } from 'lucide-react';
+import { Search, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
+import { HamburgerMenu } from './navigation/HamburgerMenu';
 
 export const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-sage-200/50">
@@ -27,22 +30,20 @@ export const Header: React.FC = () => {
           </div>
           
           <nav className="flex items-center gap-6">
-            <button
-              onClick={() => navigate('/creators')}
-              className="flex items-center gap-2 px-4 py-2 bg-sage-100 text-sage-700 hover:bg-sage-200 rounded-full font-medium transition-all duration-200"
-            >
-              <Users size={18} />
-              Creators List
-            </button>
-            <button
-              onClick={() => navigate('/settings')}
-              className="p-2 text-sage-600 hover:text-sage-800 transition-colors"
-            >
-              <Settings size={24} />
-            </button>
+            {user ? (
+              <HamburgerMenu />
+            ) : (
+              <button
+                onClick={() => navigate('/auth')}
+                className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white hover:bg-coral-600 rounded-full font-medium transition-all duration-200"
+              >
+                <LogIn size={18} />
+                Sign In
+              </button>
+            )}
           </nav>
         </div>
       </div>
     </header>
   );
-};
+}
