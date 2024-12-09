@@ -3,7 +3,8 @@ import { Users } from 'lucide-react';
 import type { Venture } from '../types/venture';
 import { getMemberColor } from '../utils/colors';
 import { useVentureStore } from '../store/useVentureStore';
-import { getActiveMembers } from '../utils/memberUtils';
+import { supabase } from '../lib/supabase';
+import { useQuery } from '../hooks/useQuery';
 
 interface VentureCardProps {
   venture: Venture;
@@ -11,10 +12,21 @@ interface VentureCardProps {
 }
 
 export const VentureCard: React.FC<VentureCardProps> = ({ venture, onClick }) => {
-  const creators = useVentureStore((state) => state.creators);
-  const activeMembers = getActiveMembers(venture, creators);
-  const displayMembers = activeMembers.slice(0, 3);
-  const remainingCount = Math.max(0, activeMembers.length - 3);
+  const { data: memberCount = 0 } = useQuery(
+    ['venture-members', venture.id],
+    async () => {
+      const { count, error } = await supabase
+        .from('venture_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('venture_id', venture.id);
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  );
+
+  const displayMembers = venture.members.slice(0, 3);
+  const remainingCount = Math.max(0, memberCount - 3);
 
   return (
     <div
@@ -42,9 +54,9 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture, onClick }) =>
         
         <div className="flex items-center mb-6">
           <div className="flex -space-x-3">
-            {displayMembers.map((creator, index) => (
+            {displayMembers.map((member, index) => (
               <div
-                key={creator.id}
+                key={member.id}
                 className="w-12 h-12 rounded-full overflow-hidden relative"
                 style={{
                   borderWidth: '2px',
@@ -54,8 +66,8 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture, onClick }) =>
                 }}
               >
                 <img
-                  src={creator.imageUrl}
-                  alt={`${creator.firstName} ${creator.lastName}`}
+                  src={member.imageUrl}
+                  alt={member.name}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -71,7 +83,7 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture, onClick }) =>
           </div>
           <div className="ml-4 flex items-center text-white/80 text-sm">
             <Users size={16} className="mr-1" />
-            <span>{activeMembers.length} active members</span>
+            <span>{memberCount} active members</span>
           </div>
         </div>
         

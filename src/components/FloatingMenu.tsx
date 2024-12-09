@@ -1,29 +1,35 @@
 import React, { useState } from 'react';
-import { Plus, X } from 'lucide-react';
-import { AddVentureForm } from './AddVentureForm';
+import { Plus } from 'lucide-react';
+import { AddVentureDialog } from './dialogs/AddVentureDialog';
 
 export const FloatingMenu: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
     <>
-      {isOpen && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-black/50 z-40" onClick={() => setIsOpen(false)} />
+      {showDialog && (
+        <AddVentureDialog onClose={() => setShowDialog(false)} />
       )}
       
-      <div className="fixed bottom-8 right-8 z-50">
-        {isOpen && (
-          <div className="absolute bottom-16 right-0 mb-4 backdrop-blur-md bg-white/90 dark:bg-gray-800/90 rounded-3xl shadow-xl p-8 w-96 border border-white/20">
-            <AddVentureForm onClose={() => setIsOpen(false)} />
-          </div>
-        )}
-        
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full p-4 shadow-lg transition-all duration-300 flex items-center justify-center w-14 h-14"
-        >
-          {isOpen ? <X size={24} /> : <Plus size={24} />}
-        </button>
+      <div className="fixed bottom-8 right-8" style={{ zIndex: 40 }}>
+        <div className="relative">
+          {showTooltip && (
+            <div className="absolute bottom-full right-0 mb-2 bg-sage-900 text-white px-3 py-1.5 rounded-lg text-sm whitespace-nowrap">
+              Create new venture
+              <div className="absolute -bottom-1 right-4 w-2 h-2 bg-sage-900 transform rotate-45" />
+            </div>
+          )}
+          
+          <button
+            onClick={() => setShowDialog(true)}
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-full p-4 shadow-lg transition-all duration-300 flex items-center justify-center w-14 h-14"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
       </div>
     </>
   );

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Plus, Network, Coins, Clock, Users, Wallet, Briefcase } from 'lucide-react';
-import { useVentureStore } from '../store/useVentureStore';
+import { useVentures } from '../hooks/useVentures';
 import { EditVentureForm } from '../components/EditVentureForm';
 import { SmartContractForm } from '../components/SmartContractForm';
 import { ContractVisualization } from '../components/ContractVisualization';
@@ -9,34 +9,135 @@ import { MemberTransactionsGraph } from '../components/MemberTransactionsGraph';
 import { TokenDistributionModal } from '../components/TokenDistributionModal';
 import { CoCreatorsList } from '../components/CoCreatorsList';
 import { SmartContractPreview } from '../components/SmartContractPreview';
-import type { SmartContract } from '../types/venture';
+import { useQuery } from '../hooks/useQuery';
+import { supabase } from '../lib/supabase';
+import type { SmartContract, Venture } from '../types/venture';
+import { useAuth } from '../hooks/useAuth';
 
 export const VenturePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showContractForm, setShowContractForm] = useState(false);
   const [editingContract, setEditingContract] = useState<SmartContract | null>(null);
   const [showTransactionsGraph, setShowTransactionsGraph] = useState(false);
   const [showDistribution, setShowDistribution] = useState<'V' | 'A' | null>(null);
   const [selectedContract, setSelectedContract] = useState<SmartContract | null>(null);
-  
-  const { ventures, updateVenture, creators } = useVentureStore();
-  const venture = ventures.find(v => v.id === id);
 
-  if (!venture) {
+  const { data: venture, loading, error } = useQuery<Venture>(
+    ['venture', id],
+    async () => {
+      if (!id) throw new Error('No venture ID provided');
+
+      // Fetch venture data
+      const { data: ventureData, error: ventureError } = await supabase
+        .from('ventures')
+        .select(`
+          *,
+          venture_members (
+            user_id,
+            role,
+            v_tokens,
+            a_tokens,
+            initial_tokens
+          ),
+          smart_contracts (
+            *,
+            contract_funders (
+              user_id,
+              tokens
+            )
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (ventureError) throw ventureError;
+      if (!ventureData) throw new Error('Venture not found');
+
+      // Get all unique user IDs
+      const userIds = new Set<string>();
+      userIds.add(ventureData.created_by);
+      ventureData.venture_members?.forEach(member => userIds.add(member.user_id));
+      ventureData.smart_contracts?.forEach(contract => {
+        userIds.add(contract.owner_id);
+        contract.contract_funders?.forEach(funder => userIds.add(funder.user_id));
+      });
+
+      // Fetch user profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', Array.from(userIds));
+
+      if (profilesError) throw profilesError;
+
+      // Transform data to match Venture type
+      return {
+        id: ventureData.id,
+        name: ventureData.name,
+        description: ventureData.description || '',
+        bannerUrl: ventureData.banner_url,
+        ventureImage: ventureData.venture_image,
+        category: ventureData.category,
+        periodInMonths: ventureData.period_in_months,
+        totalTokens: ventureData.total_tokens,
+        vTokenTreasury: ventureData.v_token_treasury,
+        aTokenTreasury: ventureData.a_token_treasury,
+        members: ventureData.venture_members?.map(member => {
+          const profile = profiles?.find(p => p.id === member.user_id);
+          return {
+            id: member.user_id,
+            name: profile?.full_name || 'Unknown',
+            imageUrl: profile?.avatar_url || '',
+            role: member.role,
+            vTokens: member.v_tokens,
+            aTokens: member.a_tokens,
+            initialTokens: member.initial_tokens,
+          };
+        }) || [],
+        smartContracts: ventureData.smart_contracts?.map(contract => ({
+          id: contract.id,
+          name: contract.name,
+          description: contract.description || '',
+          vTokens: contract.v_tokens,
+          endDate: contract.end_date,
+          exchangeDate: contract.exchange_date,
+          ownerId: contract.owner_id,
+          funders: contract.contract_funders?.map(funder => ({
+            memberId: funder.user_id,
+            tokens: funder.tokens,
+          })) || [],
+          createdAt: new Date(contract.created_at),
+          updatedAt: new Date(contract.updated_at),
+          signedAt: contract.signed_at ? new Date(contract.signed_at) : undefined,
+        })) || [],
+        createdAt: new Date(ventureData.created_at),
+        updatedAt: new Date(ventureData.updated_at),
+      };
+    }
+  );
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-sage-50">
-        <div className="text-sage-900 text-center">
-          <h2 className="text-2xl font-display font-bold mb-4">Venture not found</h2>
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-sage-700 hover:text-sage-900 transition-colors"
-          >
-            <ArrowLeft size={20} />
-            Back to Dashboard
-          </button>
-        </div>
+      <div className="min-h-screen bg-sage-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-coral-500" />
+      </div>
+    );
+  }
+
+  if (error || !venture) {
+    return (
+      <div className="min-h-screen bg-sage-50 flex flex-col items-center justify-center gap-4">
+        <h2 className="text-2xl font-display font-bold text-sage-900">Venture not found</h2>
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 px-4 py-2 bg-coral-500 text-white rounded-full hover:bg-coral-600"
+        >
+          <ArrowLeft size={20} />
+          Back to Dashboard
+        </button>
       </div>
     );
   }
@@ -73,13 +174,15 @@ export const VenturePage: React.FC = () => {
             <div className="flex-1">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-4xl font-display font-light text-sage-900">{venture.name}</h1>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 text-sage-600 hover:text-sage-800 transition-colors"
-                >
-                  <Edit2 size={20} />
-                  Edit
-                </button>
+                {user && (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-2 text-sage-600 hover:text-sage-800 transition-colors"
+                  >
+                    <Edit2 size={20} />
+                    Edit
+                  </button>
+                )}
               </div>
               <p className="text-sage-700 mb-6">{venture.description}</p>
             </div>
@@ -124,7 +227,7 @@ export const VenturePage: React.FC = () => {
           <h2 className="text-2xl font-display font-light text-sage-900 mb-6">Co-Creators</h2>
           <CoCreatorsList 
             venture={venture}
-            creators={creators}
+            creators={venture.members}
           />
         </div>
 
@@ -137,13 +240,15 @@ export const VenturePage: React.FC = () => {
                 {venture.smartContracts?.length || 0} contracts · {totalContractTokens.toLocaleString()} total tokens
               </p>
             </div>
-            <button
-              onClick={() => setShowContractForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-full"
-            >
-              <Plus size={20} />
-              New Contract
-            </button>
+            {user && (
+              <button
+                onClick={() => setShowContractForm(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-coral-500 hover:bg-coral-600 text-white rounded-full"
+              >
+                <Plus size={20} />
+                New Contract
+              </button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-6">
@@ -205,25 +310,7 @@ export const VenturePage: React.FC = () => {
               ventureId={venture.id}
               members={venture.members}
               onSubmit={(contract) => {
-                const updatedContracts = editingContract
-                  ? (venture.smartContracts || []).map(c =>
-                      c.id === editingContract.id
-                        ? { ...editingContract, ...contract }
-                        : c
-                    )
-                  : [
-                      ...(venture.smartContracts || []),
-                      {
-                        ...contract,
-                        id: Math.random().toString(36).substr(2, 9),
-                        createdAt: new Date(),
-                        updatedAt: new Date(),
-                      },
-                    ];
-
-                updateVenture(venture.id, {
-                  smartContracts: updatedContracts,
-                });
+                // Handle contract submission
                 setShowContractForm(false);
                 setEditingContract(null);
               }}
@@ -250,8 +337,7 @@ export const VenturePage: React.FC = () => {
               }}
               onDelete={(contractId) => {
                 if (window.confirm('Are you sure you want to delete this contract?')) {
-                  const updatedContracts = venture.smartContracts.filter(c => c.id !== contractId);
-                  updateVenture(venture.id, { smartContracts: updatedContracts });
+                  // Handle contract deletion
                   setSelectedContract(null);
                 }
               }}
