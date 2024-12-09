@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Users } from 'lucide-react';
 import type { Venture } from '../types/venture';
 import { getMemberColor } from '../utils/colors';
@@ -8,10 +7,10 @@ import { getActiveMembers } from '../utils/memberUtils';
 
 interface VentureCardProps {
   venture: Venture;
+  onClick: () => void;
 }
 
-export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
-  const navigate = useNavigate();
+export const VentureCard: React.FC<VentureCardProps> = ({ venture, onClick }) => {
   const creators = useVentureStore((state) => state.creators);
   const activeMembers = getActiveMembers(venture, creators);
   const displayMembers = activeMembers.slice(0, 3);
@@ -19,7 +18,7 @@ export const VentureCard: React.FC<VentureCardProps> = ({ venture }) => {
 
   return (
     <div
-      onClick={() => navigate(`/venture/${venture.id}`)}
+      onClick={onClick}
       className="group cursor-pointer backdrop-blur-md bg-black/30 dark:bg-gray-800/30 rounded-3xl p-8 transition-all duration-300 hover:scale-[1.02] border border-white/10"
     >
       <div className="flex flex-col h-full">

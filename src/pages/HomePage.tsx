@@ -3,9 +3,11 @@ import { Header } from '../components/Header';
 import { VentureList } from '../components/VentureList';
 import { FloatingMenu } from '../components/FloatingMenu';
 import { useVentureStore } from '../store/useVentureStore';
+import { useAuth } from '../hooks/useAuth';
 
 export const HomePage: React.FC = () => {
   const backgroundImage = useVentureStore((state) => state.backgroundImage);
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#fcedda' }}>
@@ -21,7 +23,7 @@ export const HomePage: React.FC = () => {
       </div>
       <Header />
       <VentureList />
-      <FloatingMenu />
+      {user && <FloatingMenu />}
     </div>
   );
 };
