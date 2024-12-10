@@ -1,123 +1,27 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit2, Plus, Network, Coins, Clock, Users, Wallet, Briefcase } from 'lucide-react';
-import { useVentures } from '../hooks/useVentures';
 import { EditVentureForm } from '../components/EditVentureForm';
-import { SmartContractForm } from '../components/SmartContractForm';
+import { NewSmartContractDialog } from '../components/dialogs/NewSmartContractDialog';
 import { ContractVisualization } from '../components/ContractVisualization';
 import { MemberTransactionsGraph } from '../components/MemberTransactionsGraph';
 import { TokenDistributionModal } from '../components/TokenDistributionModal';
 import { CoCreatorsList } from '../components/CoCreatorsList';
 import { SmartContractPreview } from '../components/SmartContractPreview';
-import { useQuery } from '../hooks/useQuery';
-import { supabase } from '../lib/supabase';
-import type { SmartContract, Venture } from '../types/venture';
+import { useVentureDetails } from '../hooks/useVentureDetails';
 import { useAuth } from '../hooks/useAuth';
 
 export const VenturePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { data: venture, loading, error } = useVentureDetails(id);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [showContractForm, setShowContractForm] = useState(false);
-  const [editingContract, setEditingContract] = useState<SmartContract | null>(null);
   const [showTransactionsGraph, setShowTransactionsGraph] = useState(false);
   const [showDistribution, setShowDistribution] = useState<'V' | 'A' | null>(null);
-  const [selectedContract, setSelectedContract] = useState<SmartContract | null>(null);
-
-  const { data: venture, loading, error } = useQuery<Venture>(
-    ['venture', id],
-    async () => {
-      if (!id) throw new Error('No venture ID provided');
-
-      // Fetch venture data
-      const { data: ventureData, error: ventureError } = await supabase
-        .from('ventures')
-        .select(`
-          *,
-          venture_members (
-            user_id,
-            role,
-            v_tokens,
-            a_tokens,
-            initial_tokens
-          ),
-          smart_contracts (
-            *,
-            contract_funders (
-              user_id,
-              tokens
-            )
-          )
-        `)
-        .eq('id', id)
-        .single();
-
-      if (ventureError) throw ventureError;
-      if (!ventureData) throw new Error('Venture not found');
-
-      // Get all unique user IDs
-      const userIds = new Set<string>();
-      userIds.add(ventureData.created_by);
-      ventureData.venture_members?.forEach(member => userIds.add(member.user_id));
-      ventureData.smart_contracts?.forEach(contract => {
-        userIds.add(contract.owner_id);
-        contract.contract_funders?.forEach(funder => userIds.add(funder.user_id));
-      });
-
-      // Fetch user profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', Array.from(userIds));
-
-      if (profilesError) throw profilesError;
-
-      // Transform data to match Venture type
-      return {
-        id: ventureData.id,
-        name: ventureData.name,
-        description: ventureData.description || '',
-        bannerUrl: ventureData.banner_url,
-        ventureImage: ventureData.venture_image,
-        category: ventureData.category,
-        periodInMonths: ventureData.period_in_months,
-        totalTokens: ventureData.total_tokens,
-        vTokenTreasury: ventureData.v_token_treasury,
-        aTokenTreasury: ventureData.a_token_treasury,
-        members: ventureData.venture_members?.map(member => {
-          const profile = profiles?.find(p => p.id === member.user_id);
-          return {
-            id: member.user_id,
-            name: profile?.full_name || 'Unknown',
-            imageUrl: profile?.avatar_url || '',
-            role: member.role,
-            vTokens: member.v_tokens,
-            aTokens: member.a_tokens,
-            initialTokens: member.initial_tokens,
-          };
-        }) || [],
-        smartContracts: ventureData.smart_contracts?.map(contract => ({
-          id: contract.id,
-          name: contract.name,
-          description: contract.description || '',
-          vTokens: contract.v_tokens,
-          endDate: contract.end_date,
-          exchangeDate: contract.exchange_date,
-          ownerId: contract.owner_id,
-          funders: contract.contract_funders?.map(funder => ({
-            memberId: funder.user_id,
-            tokens: funder.tokens,
-          })) || [],
-          createdAt: new Date(contract.created_at),
-          updatedAt: new Date(contract.updated_at),
-          signedAt: contract.signed_at ? new Date(contract.signed_at) : undefined,
-        })) || [],
-        createdAt: new Date(ventureData.created_at),
-        updatedAt: new Date(ventureData.updated_at),
-      };
-    }
-  );
+  const [selectedContract, setSelectedContract] = useState<string | null>(null);
 
   if (loading) {
     return (
@@ -199,11 +103,11 @@ export const VenturePage: React.FC = () => {
             )}
             <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm border border-emerald-200">
               <Clock size={16} />
-              {venture.periodInMonths || 12} months
+              {venture.periodInMonths} months
             </span>
             <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm border border-blue-200">
               <Coins size={16} />
-              {(venture.totalTokens || 1000000).toLocaleString()} tokens
+              {venture.totalTokens.toLocaleString()} tokens
             </span>
             <button
               onClick={() => setShowDistribution('V')}
@@ -226,8 +130,8 @@ export const VenturePage: React.FC = () => {
         <div className="mb-8">
           <h2 className="text-2xl font-display font-light text-sage-900 mb-6">Co-Creators</h2>
           <CoCreatorsList 
-            venture={venture}
-            creators={venture.members}
+            ventureId={venture.id}
+            smartContracts={venture.smartContracts}
           />
         </div>
 
@@ -252,12 +156,12 @@ export const VenturePage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-6">
-            {(venture.smartContracts || []).map(contract => (
+            {venture.smartContracts.map(contract => (
               <SmartContractPreview
                 key={contract.id}
                 contract={contract}
                 members={venture.members}
-                onClick={() => setSelectedContract(contract)}
+                onClick={() => setSelectedContract(contract.id)}
               />
             ))}
           </div>
@@ -280,7 +184,7 @@ export const VenturePage: React.FC = () => {
             <div className="mt-8">
               <MemberTransactionsGraph
                 members={venture.members}
-                contracts={venture.smartContracts || []}
+                contracts={venture.smartContracts}
                 onClose={() => setShowTransactionsGraph(false)}
               />
             </div>
@@ -301,45 +205,29 @@ export const VenturePage: React.FC = () => {
       )}
 
       {showContractForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div 
-            className="bg-[#dde3d7] rounded-3xl p-8 w-[80%] h-[80%] mx-4 overflow-hidden"
-            style={{ maxHeight: '80vh' }}
-          >
-            <SmartContractForm
-              ventureId={venture.id}
-              members={venture.members}
-              onSubmit={(contract) => {
-                // Handle contract submission
-                setShowContractForm(false);
-                setEditingContract(null);
-              }}
-              onCancel={() => {
-                setShowContractForm(false);
-                setEditingContract(null);
-              }}
-              initialData={editingContract || undefined}
-            />
-          </div>
-        </div>
+        <NewSmartContractDialog
+          ventureId={venture.id}
+          onClose={() => setShowContractForm(false)}
+          onSuccess={() => {
+            setShowContractForm(false);
+            // Refresh venture data
+          }}
+        />
       )}
 
       {selectedContract && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-black/30 rounded-3xl p-8 max-w-4xl w-full mx-4">
             <ContractVisualization
-              contracts={[selectedContract]}
+              contracts={[venture.smartContracts.find(c => c.id === selectedContract)!]}
               members={venture.members}
-              onEdit={(contract) => {
-                setEditingContract(contract);
-                setShowContractForm(true);
+              onEdit={() => {
+                // Handle edit
                 setSelectedContract(null);
               }}
-              onDelete={(contractId) => {
-                if (window.confirm('Are you sure you want to delete this contract?')) {
-                  // Handle contract deletion
-                  setSelectedContract(null);
-                }
+              onDelete={() => {
+                // Handle delete
+                setSelectedContract(null);
               }}
               ventureId={venture.id}
             />

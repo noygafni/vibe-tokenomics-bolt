@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, ArrowUpRight, ArrowDownRight, Coins, User } from 'lucide-react';
-import type { Member, SmartContract, Venture } from '../types/venture';
+import type { Member, SmartContract } from '../types/venture';
 import type { Creator } from '../types/creator';
 import { getMemberColor } from '../utils/colors';
 import { calculateTokenBalance } from '../utils/tokenCalculations';
@@ -8,16 +8,15 @@ import { calculateTokenBalance } from '../utils/tokenCalculations';
 interface TokenHolderTransactionsModalProps {
   member: Member;
   creator: Creator;
-  venture: Venture;
-  creators: Creator[];
+  ventureId: string;
+  smartContracts: SmartContract[];
   onClose: () => void;
 }
 
 export const TokenHolderTransactionsModal: React.FC<TokenHolderTransactionsModalProps> = ({
   member,
   creator,
-  venture,
-  creators,
+  smartContracts,
   onClose,
 }) => {
   const transactions = [];
@@ -27,17 +26,14 @@ export const TokenHolderTransactionsModal: React.FC<TokenHolderTransactionsModal
     transactions.push({
       type: 'initial',
       amount: member.initialTokens,
-      date: venture.createdAt,
+      date: new Date(),
       description: 'Initial Token Allocation',
     });
   }
 
   // Add contract transactions
-  venture.smartContracts?.forEach(contract => {
+  smartContracts.forEach(contract => {
     if (!contract.signedAt) return;
-
-    const contractOwner = creators.find(c => c.id === contract.ownerId);
-    if (!contractOwner) return;
 
     // Tokens received as contract owner
     if (contract.ownerId === member.id) {
@@ -47,7 +43,6 @@ export const TokenHolderTransactionsModal: React.FC<TokenHolderTransactionsModal
         date: contract.signedAt,
         description: `Received from contract: ${contract.name}`,
         contract,
-        ownerName: `${contractOwner.firstName} ${contractOwner.lastName}`
       });
     }
 
@@ -60,7 +55,6 @@ export const TokenHolderTransactionsModal: React.FC<TokenHolderTransactionsModal
         date: contract.signedAt,
         description: `Funded contract: ${contract.name}`,
         contract,
-        ownerName: `${contractOwner.firstName} ${contractOwner.lastName}`
       });
     }
   });
@@ -68,7 +62,7 @@ export const TokenHolderTransactionsModal: React.FC<TokenHolderTransactionsModal
   // Sort transactions by date
   transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
 
-  const balance = calculateTokenBalance(member.id, member.initialTokens || 0, venture.smartContracts || []);
+  const balance = calculateTokenBalance(member.id, member.initialTokens || 0, smartContracts);
 
   return (
     <div className="fixed inset-0 flex items-center justify-center" style={{ zIndex: 1000 }}>
@@ -124,12 +118,6 @@ export const TokenHolderTransactionsModal: React.FC<TokenHolderTransactionsModal
                   )}
                   <div>
                     <div className="text-white font-medium">{tx.description}</div>
-                    {tx.ownerName && (
-                      <div className="flex items-center gap-1 text-white/60 text-sm mt-1">
-                        <User size={12} />
-                        Contract Owner: {tx.ownerName}
-                      </div>
-                    )}
                     <div className="text-white/60 text-sm mt-1">
                       {tx.date.toLocaleDateString()}
                     </div>
