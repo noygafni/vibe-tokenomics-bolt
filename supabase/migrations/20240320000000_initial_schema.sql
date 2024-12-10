@@ -1,3 +1,6 @@
+-- Enable UUID extension
+create extension if not exists "uuid-ossp";
+
 -- Create profiles table to extend auth.users
 create table profiles (
   id uuid references auth.users on delete cascade primary key,
@@ -65,6 +68,13 @@ create table contract_funders (
 
 -- RLS Policies
 
+-- Enable RLS on all tables
+alter table profiles enable row level security;
+alter table ventures enable row level security;
+alter table venture_members enable row level security;
+alter table smart_contracts enable row level security;
+alter table contract_funders enable row level security;
+
 -- Profiles policies
 create policy "Public profiles are viewable by everyone"
   on profiles for select
@@ -128,6 +138,15 @@ create policy "Contract owners can update their contracts"
       and v.created_by = auth.uid()
     )
   );
+
+-- Contract funders policies
+create policy "Contract funders are viewable by everyone"
+  on contract_funders for select
+  using ( true );
+
+create policy "Authenticated users can fund contracts"
+  on contract_funders for insert
+  with check ( auth.role() = 'authenticated' );
 
 -- Functions and Triggers
 create function public.handle_new_user()
