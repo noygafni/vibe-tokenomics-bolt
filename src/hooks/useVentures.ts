@@ -15,22 +15,45 @@ export const useVentures = () => {
 
   const fetchVentures = async () => {
     try {
-      const { data: venturesData, error: venturesError } = await supabase
-        .from('ventures')
+      const { data, error: venturesError } = await supabase
+        .from('venture_members_with_profiles')
         .select(`
-          *,
-          venture_members (
-            user_id,
-            role,
-            v_tokens,
-            a_tokens,
-            initial_tokens
-          ),
-          smart_contracts (
-            *,
-            contract_funders (
-              user_id,
-              tokens
+          venture_id,
+          user_id,
+          role,
+          v_tokens,
+          a_tokens,
+          initial_tokens,
+          full_name,
+          avatar_url,
+          ventures (
+            id,
+            name,
+            description,
+            banner_url,
+            venture_image,
+            category,
+            period_in_months,
+            total_tokens,
+            v_token_treasury,
+            a_token_treasury,
+            created_at,
+            updated_at,
+            smart_contracts (
+              id,
+              name,
+              description,
+              v_tokens,
+              end_date,
+              exchange_date,
+              owner_id,
+              signed_at,
+              created_at,
+              updated_at,
+              contract_funders (
+                user_id,
+                tokens
+              )
             )
           )
         `)
@@ -38,70 +61,60 @@ export const useVentures = () => {
 
       if (venturesError) throw venturesError;
 
-      // Get all unique user IDs from ventures, members, and contracts
-      const userIds = new Set<string>();
-      venturesData?.forEach(venture => {
-        userIds.add(venture.created_by);
-        venture.venture_members?.forEach(member => userIds.add(member.user_id));
-        venture.smart_contracts?.forEach(contract => {
-          userIds.add(contract.owner_id);
-          contract.contract_funders?.forEach(funder => userIds.add(funder.user_id));
+      // Group members by venture
+      const ventureMap = new Map<string, Venture>();
+      
+      data?.forEach(row => {
+        const venture = row.ventures;
+        if (!venture) return;
+
+        if (!ventureMap.has(venture.id)) {
+          ventureMap.set(venture.id, {
+            id: venture.id,
+            name: venture.name,
+            description: venture.description || '',
+            bannerUrl: venture.banner_url,
+            ventureImage: venture.venture_image,
+            category: venture.category,
+            periodInMonths: venture.period_in_months,
+            totalTokens: venture.total_tokens,
+            vTokenTreasury: venture.v_token_treasury,
+            aTokenTreasury: venture.a_token_treasury,
+            members: [],
+            smartContracts: venture.smart_contracts.map(contract => ({
+              id: contract.id,
+              name: contract.name,
+              description: contract.description || '',
+              vTokens: contract.v_tokens,
+              endDate: contract.end_date,
+              exchangeDate: contract.exchange_date,
+              ownerId: contract.owner_id,
+              funders: contract.contract_funders.map(funder => ({
+                memberId: funder.user_id,
+                tokens: funder.tokens,
+              })),
+              createdAt: new Date(contract.created_at),
+              updatedAt: new Date(contract.updated_at),
+              signedAt: contract.signed_at ? new Date(contract.signed_at) : undefined,
+            })),
+            createdAt: new Date(venture.created_at),
+            updatedAt: new Date(venture.updated_at),
+          });
+        }
+
+        const currentVenture = ventureMap.get(venture.id)!;
+        currentVenture.members.push({
+          id: row.user_id,
+          name: row.full_name,
+          imageUrl: row.avatar_url,
+          role: row.role,
+          vTokens: row.v_tokens,
+          aTokens: row.a_tokens,
+          initialTokens: row.initial_tokens,
         });
       });
 
-      // Fetch user profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', Array.from(userIds));
-
-      if (profilesError) throw profilesError;
-
-      // Transform data to match Venture type
-      const transformedVentures: Venture[] = venturesData?.map(venture => ({
-        id: venture.id,
-        name: venture.name,
-        description: venture.description || '',
-        bannerUrl: venture.banner_url,
-        ventureImage: venture.venture_image,
-        category: venture.category,
-        periodInMonths: venture.period_in_months,
-        totalTokens: venture.total_tokens,
-        vTokenTreasury: venture.v_token_treasury,
-        aTokenTreasury: venture.a_token_treasury,
-        members: venture.venture_members?.map(member => {
-          const profile = profiles?.find(p => p.id === member.user_id);
-          return {
-            id: member.user_id,
-            name: profile?.full_name || 'Unknown',
-            imageUrl: profile?.avatar_url || '',
-            role: member.role,
-            vTokens: member.v_tokens,
-            aTokens: member.a_tokens,
-            initialTokens: member.initial_tokens,
-          };
-        }) || [],
-        smartContracts: venture.smart_contracts?.map(contract => ({
-          id: contract.id,
-          name: contract.name,
-          description: contract.description || '',
-          vTokens: contract.v_tokens,
-          endDate: contract.end_date,
-          exchangeDate: contract.exchange_date,
-          ownerId: contract.owner_id,
-          funders: contract.contract_funders?.map(funder => ({
-            memberId: funder.user_id,
-            tokens: funder.tokens,
-          })) || [],
-          createdAt: new Date(contract.created_at),
-          updatedAt: new Date(contract.updated_at),
-          signedAt: contract.signed_at ? new Date(contract.signed_at) : undefined,
-        })) || [],
-        createdAt: new Date(venture.created_at),
-        updatedAt: new Date(venture.updated_at),
-      })) || [];
-
-      setVentures(transformedVentures);
+      setVentures(Array.from(ventureMap.values()));
     } catch (error: any) {
       console.error('Error fetching ventures:', error);
       setError(error.message);
@@ -116,7 +129,7 @@ export const useVentures = () => {
     }
 
     try {
-      // First, insert the venture
+      // Insert venture
       const { data: venture, error: ventureError } = await supabase
         .from('ventures')
         .insert({
@@ -137,20 +150,11 @@ export const useVentures = () => {
       if (ventureError) throw ventureError;
       if (!venture) throw new Error('Failed to create venture');
 
-      // Add the creator as a founder
-      const members = [
-        {
-          venture_id: venture.id,
-          user_id: user.id,
-          role: 'Founder' as const,
-          v_tokens: 0,
-          a_tokens: 0,
-          initial_tokens: 0,
-        },
-        // Add other members
-        ...ventureData.members
-          .filter(member => member.id !== user.id) // Exclude the creator as they're already added
-          .map(member => ({
+      // Insert venture members
+      const { error: membersError } = await supabase
+        .from('venture_members')
+        .insert(
+          ventureData.members.map(member => ({
             venture_id: venture.id,
             user_id: member.id,
             role: member.role,
@@ -158,16 +162,10 @@ export const useVentures = () => {
             a_tokens: member.aTokens,
             initial_tokens: member.initialTokens,
           }))
-      ];
-
-      // Insert all members
-      const { error: membersError } = await supabase
-        .from('venture_members')
-        .insert(members);
+        );
 
       if (membersError) throw membersError;
 
-      // Refresh ventures list
       await fetchVentures();
     } catch (error: any) {
       console.error('Error adding venture:', error);

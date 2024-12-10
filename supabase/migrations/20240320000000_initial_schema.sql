@@ -66,6 +66,15 @@ create table contract_funders (
   primary key (contract_id, user_id)
 );
 
+-- Create views for easier querying with relationships
+create or replace view venture_members_with_profiles as
+select 
+  vm.*,
+  p.full_name,
+  p.avatar_url
+from venture_members vm
+join profiles p on p.id = vm.user_id;
+
 -- RLS Policies
 
 -- Enable RLS on all tables
