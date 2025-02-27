@@ -5,7 +5,7 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import ModernTreasury from "npm:modern-treasury";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -38,7 +38,7 @@ const createUserAccounts = async (ventureId: string, userId: string): Promise<vo
 
   const vTokenAccount = await modernTreasury.ledgerAccounts.create({
     name: `V-Token User: ${userName}`,
-    description: "Account for issuing value tokens",
+    description: `Account for issuing Value tokens for userId: ${userId}`,
     currency: "VTK",
     normal_balance: "credit",
     currency_exponent: 0,
@@ -51,7 +51,7 @@ const createUserAccounts = async (ventureId: string, userId: string): Promise<vo
 
   const aTokenAccount = await modernTreasury.ledgerAccounts.create({
     name: `A-Token User: ${userName}`,
-    description: "Account for issuing Asset tokens",
+    description: `Account for issuing Asset tokens for userId: ${userId}`,
     currency: "ATK",
     normal_balance: "credit",
     currency_exponent: 0,

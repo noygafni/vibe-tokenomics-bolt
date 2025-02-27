@@ -6,6 +6,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import ModernTreasury from "npm:modern-treasury";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -13,6 +14,41 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 console.log('supabase url: ', supabaseUrl);
 
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+const modernTreasury = new ModernTreasury({
+  apiKey: Deno.env.get("MODERN_TREASURY_API_KEY"),
+  organizationId: Deno.env.get("MODERN_TREASURY_ORG_ID"),
+});
+
+const getUserVTokenAccountId = async (userId: string): Promise<string> => {
+  const { data, error } = await supabase.from('user_ledger_accounts').select('account_id').eq('user_id', userId).eq('account_type', 'V_token');
+  if (error) {
+    throw new Error(`Failed to fetch account if for user_id: ${userId} `, error)
+  }
+  return data[0].account_id
+}
+
+const createTransaction = async ({ fromUser, toUser, amount }: { fromUser: string, toUser: string, amount: number }) => {
+  const fromUserAccount = await getUserVTokenAccountId(fromUser);
+  const toUserAcount = await getUserVTokenAccountId(toUser);
+    
+  return await modernTreasury.ledgerTransactions.create({
+    status: "pending",
+    ledger_entries: [
+      {
+        ledger_account_id: fromUserAccount,
+        amount,
+        direction: "debit",
+      },
+      {
+        ledger_account_id: toUserAcount,
+        amount,
+        direction: "credit",
+      },
+    ],
+    description: `Transfer of ${amount} VTK from ${fromUser} to ${toUser}`,
+  });
+}
 
 Deno.serve(async (req) => {
   try {
@@ -26,26 +62,33 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    const { data, error } = await supabase.from('smart_contracts').select('holder_user_id').eq('id', smart_contract_id);
-    if (error) {
-      console.error('error getting smart contract holder id: ', error);
+    const contractHolderResponse = await supabase.from('smart_contracts').select('holder_user_id').eq('id', smart_contract_id);
+    if (contractHolderResponse.error) {
+      console.error('error getting smart contract holder id: ', contractHolderResponse.error);
       return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
     }
-    const { holder_user_id } = data[0];
-    console.log('holder user id: ', holder_user_id);
+    const contractHolderUserId = contractHolderResponse.data[0].holder_user_id;
 
+    const transaction = await createTransaction({ 
+      fromUser: backer_user_id,
+      toUser: contractHolderUserId,
+      amount: staking_v_tokens_amount
+    })
     
-
-    // const { data, error } = await supabase
-    //   .from("smart_contract_backers")
-    //   .insert([
-    //     {
-    //       smart_contract_id,
-    //       backer_user_id,
-    //       staking_v_tokens_amount,
-    //     },
-    //   ])
-    //   .select();
+    if (!transaction || !transaction.id) {
+      console.error('unable to create transaction');
+      return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    }
+    const { data, error } = await supabase
+      .from("smart_contract_backers")
+      .insert([
+        {
+          smart_contract_id,
+          backer_user_id,
+          staking_v_tokens_amount,
+        },
+      ])
+      .select();
 
     if (error) {
       console.error('error insert smart_contract_backer: ', error);
