@@ -26,16 +26,26 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from("smart_contract_backers")
-      .insert([
-        {
-          smart_contract_id,
-          backer_user_id,
-          staking_v_tokens_amount,
-        },
-      ])
-      .select();
+    const { data, error } = await supabase.from('smart_contracts').select('holder_user_id').eq('id', smart_contract_id);
+    if (error) {
+      console.error('error getting smart contract holder id: ', error);
+      return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+    }
+    const { holder_user_id } = data[0];
+    console.log('holder user id: ', holder_user_id);
+
+    
+
+    // const { data, error } = await supabase
+    //   .from("smart_contract_backers")
+    //   .insert([
+    //     {
+    //       smart_contract_id,
+    //       backer_user_id,
+    //       staking_v_tokens_amount,
+    //     },
+    //   ])
+    //   .select();
 
     if (error) {
       console.error('error insert smart_contract_backer: ', error);

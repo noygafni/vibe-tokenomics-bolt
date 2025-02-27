@@ -41,9 +41,9 @@ INSERT INTO public.user_to_studio (id, user_id, studio_id, role) VALUES
     (uuid_generate_v4(), '33333333-3333-3333-3333-333333333333', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'user');
 
 -- Insert two ventures
-INSERT INTO public.ventures (id, name, description, image_url, v_token_amount, duration, category) VALUES
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'GreenTech', 'Sustainable energy venture.', 'https://example.com/greentech.png', 1000, 12, 'energy'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'AI Solutions', 'Artificial Intelligence startup.', 'https://example.com/ai.png', 1500, 18, 'technology');
+INSERT INTO public.ventures (id, name, description, image_url, v_token_amount, end_date, category, ledger_id) VALUES
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'GreenTech', 'Sustainable energy venture.', 'https://example.com/greentech.png', 1000, '2025-12-31', 'energy', null),
+    ('cccccccc-cccc-cccc-cccc-cccccccccccc', 'AI Solutions', 'Artificial Intelligence startup.', 'https://example.com/ai.png', 1500, '2025-12-31', 'technology', null);
 
 -- Link ventures to the studio
 INSERT INTO public.venture_to_studio (id, studio_id, venture_id) VALUES
