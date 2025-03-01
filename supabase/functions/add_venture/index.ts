@@ -7,6 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import ModernTreasury from "npm:modern-treasury";
+import { VentureRequest } from "./types.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -58,7 +59,6 @@ const createNewLedgerForVenture = async (ventureName: string): Promise<string> =
   return ledgerResponse.id;
 }
 
-
 Deno.serve(async (req) => {
   try {
     if (req.method !== "POST") {
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const body = await req.json();
+    const body = await req.json() as VentureRequest;
     const { name, description, image_url, v_token_amount, category, end_date } = body
 
     // Validate required fields

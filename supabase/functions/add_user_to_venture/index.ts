@@ -7,6 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import ModernTreasury from "npm:modern-treasury";
+import { UserToVentureRequest } from "./type.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const body = await req.json();
+    const body = await req.json() as UserToVentureRequest;
     const { user_id, venture_id, type } = body
 
     // Validate required fields

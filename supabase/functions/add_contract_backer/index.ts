@@ -7,6 +7,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import ModernTreasury from "npm:modern-treasury";
+import { SmartContractBackerRequest } from "./types.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -56,7 +57,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
     }
 
-    const { smart_contract_id, backer_user_id, staking_v_tokens_amount } = await req.json();
+    const { smart_contract_id, backer_user_id, staking_v_tokens_amount } = await req.json() as SmartContractBackerRequest;
 
     if (!smart_contract_id || !backer_user_id || staking_v_tokens_amount === undefined) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), { status: 400 });
