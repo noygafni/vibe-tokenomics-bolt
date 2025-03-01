@@ -86,6 +86,7 @@ Deno.serve(async (req) => {
           smart_contract_id,
           backer_user_id,
           staking_v_tokens_amount,
+          transaction_id: transaction.id
         },
       ])
       .select();
