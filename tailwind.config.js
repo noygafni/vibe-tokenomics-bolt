@@ -1,78 +1,131 @@
 /** @type {import('tailwindcss').Config} */
-export default {
-  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+const withMT = require("@material-tailwind/react/utils/withMT");
+
+module.exports = withMT({
+  darkMode: ["class"],
+  content: [
+    './pages/*.{ts,tsx}',
+    './src/components/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+    './src/*.{ts,tsx}',
+	],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
+      fontFamily: {
+        'custom': ['Ubuntu', 'sans-serif'],
+      },
+      transitionProperty: {
+        'max-height': 'max-height'
+      },
+      boxShadow: {
+        '3xl': '0px 2px 12px 0px rgba(0, 0, 0, 0.15)'
+      },
       colors: {
-        'sage': {
-          50: '#f4f6f4',
-          100: '#e7ebe7',
-          200: '#d3dcd3',
-          300: '#b4c2b4',
-          400: '#95a795',
-          500: '#788c78',
-          600: '#5f715f',
-          700: '#4d5b4d',
-          800: '#414b41',
-          900: '#383f38',
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: '#006AF9',
+          hover: '#0162E5',
+          focus: '#005DDB',
+          pressed: '#0059D1',
+          light: '#E6F0FE',
+          'very-light': '#F2F7FF',
+          soft: '#8ABAFC',
+          dark: '#004BB1',
+          50: '#F5F9FF',
         },
-        'cream': {
-          50: '#fdfbf7',
-          100: '#faf6ed',
-          200: '#f3eada',
-          300: '#e9d8bc',
-          400: '#dfc199',
-          500: '#d4a877',
-          600: '#c28c5b',
-          700: '#a2714a',
-          800: '#835c40',
-          900: '#6b4c37',
+        'secondary-gray': {
+          10: '#F8F8F9',
+          50: '#FAFAFB',
+          100: '#EBEBEB',
+          200: '#E0E0E0',
+          300: '#D6D6D6',
+          350: '#D9D9D9',
+          400: '#9A9A9A',
+          500: '#666666',
+          600: '#343434'
         },
-        'coral': {
-          50: '#fff4f0',
-          100: '#ffe8e0',
-          200: '#ffd0c0',
-          300: '#ffb199',
-          400: '#ff8566',
-          500: '#ff5533',
-          600: '#ff2b0a',
-          700: '#cc1700',
-          800: '#a61400',
-          900: '#881100',
+        'red': {
+          DEFAULT: '#EA4335',
+          dark: '#A50E0E',
         },
-        'mint': {
-          50: '#f2f9f9',
-          100: '#e6f3f3',
-          200: '#bfe2e2',
-          300: '#99d1d1',
-          400: '#4dafaf',
-          500: '#008c8c',
-          600: '#007e7e',
-          700: '#006969',
-          800: '#005454',
-          900: '#004545',
+        'green': {
+          DEFAULT: '#0D652D',
         },
-        'sand': {
-          50: '#fcf9f6',
-          100: '#f9f3ed',
-          200: '#f0e2d1',
-          300: '#e7d1b5',
-          400: '#d4ae7e',
-          500: '#c28b47',
-          600: '#af7d40',
-          700: '#926835',
-          800: '#74532b',
-          900: '#5f4423',
-        }
+        'pink': {
+          DEFAULT: '#FF10F0',
+          light: '#FFE5FD',
+        },
+        notification: {
+          green: '#CEEAD6',
+          red: '#FAD2CF',
+          yellow: '#FEEFC3',
+          DEFAULT: '#E37400',
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
       },
       borderRadius: {
-        '4xl': '2rem',
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
-      fontFamily: {
-        'display': ['Clash Display', 'sans-serif'],
-        'body': ['Inter', 'sans-serif'],
-      }
+      keyframes: {
+        "shimmer": {
+          "100%": {
+            "transform": "translateY(100%)",
+          },
+        },
+        "load": {
+            "0%": {
+                transform: "rotate(0deg)"
+            },
+            "100%": {
+                transform: "rotate(360deg)"
+            }
+        },
+        "fadeIn": {
+          '0%': { opacity: 0 },
+          '100%': { opacity: 1 },
+        },
+      },
+      animation: {
+        "slow-ping": "ping 5s linear infinite",
+        "slow-spin": "spin 1s linear infinite",
+        fadeIn: 'fadeIn 1s ease-in-out',
+      },
     },
+    fill: theme => theme('colors'),
   },
-  plugins: [],
-};
+  plugins: [require("tailwindcss-animate"), require('@tailwindcss/typography'),require('tailwind-scrollbar')],
+
+})

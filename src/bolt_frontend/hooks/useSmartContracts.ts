@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import type { SmartContract } from '../types/venture';
 
 export const useSmartContracts = (ventureId: string) => {

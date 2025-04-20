@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 
 interface MemberSearchProps {
   onSelect: (member: { id: string; name: string; imageUrl: string }) => void;

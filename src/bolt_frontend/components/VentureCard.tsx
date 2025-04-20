@@ -3,7 +3,7 @@ import { Users } from 'lucide-react';
 import type { Venture } from '../types/venture';
 import { getMemberColor } from '../utils/colors';
 import { useVentureStore } from '../store/useVentureStore';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { useQuery } from '../hooks/useQuery';
 
 interface VentureCardProps {

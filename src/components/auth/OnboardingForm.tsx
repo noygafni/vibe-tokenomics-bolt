@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Camera } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import {useSupabase} from '../../hooks/useSupabase';
 import { ImageUpload } from '../ImageUpload';
 
 interface OnboardingFormProps {
@@ -11,6 +11,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ onComplete }) =>
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [loading, setLoading] = useState(false);
+  const supabase = useSupabase()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +109,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ onComplete }) =>
         <button
           type="submit"
           disabled={loading || !username.trim()}
-          className="w-full py-2 bg-coral-500 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-2 bg-blue-gray-400 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? (
             <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mx-auto" />
