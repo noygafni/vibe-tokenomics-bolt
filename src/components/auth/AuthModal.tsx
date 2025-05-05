@@ -2,13 +2,14 @@ import React from 'react';
 import { X } from 'lucide-react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '../../lib/supabase';
+import {useSupabase} from '../../hooks/useSupabase';
 
 interface AuthModalProps {
   onClose: () => void;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onClose }) => {
+  const supabase = useSupabase()
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-3xl p-8 max-w-md w-full mx-4 relative">

@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { LogIn } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import {useSupabase} from '../../hooks/useSupabase';
+import { useAuth } from '../../hooks/useAuth';
 
 export const SignInForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const supabase = useSupabase()
+  const {setUserDetails} = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,12 +17,13 @@ export const SignInForm: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      setUserDetails(data.user)
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -64,7 +68,7 @@ export const SignInForm: React.FC = () => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-2 bg-coral-500 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 py-2 bg-blue-gray-400 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50"
       >
         {loading ? (
           <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white" />

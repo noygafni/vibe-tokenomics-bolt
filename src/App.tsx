@@ -1,62 +1,61 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './providers/AuthProvider';
-import { HomePage } from './pages/HomePage';
-import { VenturePage } from './pages/VenturePage';
-import { SettingsPage } from './pages/SettingsPage';
-import { WalletPage } from './pages/WalletPage';
-import { AuthPage } from './pages/AuthPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { useAuth } from './hooks/useAuth';
-
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-sage-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-coral-500" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-};
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Sidebar from "./components/Sidebar";
+import Dashboard from "./pages/Dashboard";
+import VentureDetails from "./pages/VentureDetails";
+import Creators from "./pages/Creators";
+import CreatorDetails from "./pages/CreatorDetails";
+import SmartContractDetails from "./pages/SmartContractDetails";
+import Settings from "./pages/Settings";
+import { studio } from "../mock-data";
+// import { useStudioStore } from "./lib/store";
+import VibeLogo from "./assets/logo.png";
+import { AuthGuard } from "./components/AuthGuard";
+import {AuthPage} from "./pages/AuthPage";
 
 function App() {
+  const { backgroundColor, studioName, topBarColor } = studio;
+
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/auth" element={<AuthPage />} />
-          <Route path="/" element={<HomePage />} />
-          <Route path="/venture/:id" element={
-            <ProtectedRoute>
-              <VenturePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/settings" element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/wallet" element={
-            <ProtectedRoute>
-              <WalletPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          } />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <Router>
+      <div
+        className="flex min-h-screen overflow-hidden"
+        style={{ backgroundColor }}
+      >
+        <Sidebar />
+        <main className="flex-1 overflow-hidden">
+          <div
+            className="p-4 flex justify-between items-center overflow-hidden"
+            style={{ backgroundColor: topBarColor }}
+          >
+            <img
+              src={VibeLogo}
+              width={120}
+              height={40}
+              className="absolute top-0 left-0 m-6"
+            />
+            {/* <div className="relative">
+              <input
+                type="text"
+                placeholder="Search everything..."
+                className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div> */}
+          </div>
+          <div className="p-8 pb-0 overflow-hidden">
+            <Routes>
+              <Route path="/login" element={<AuthPage />} />
+              <Route path="/" element={<AuthGuard component={Dashboard}/>} />
+              <Route path="/ventures/:id" element={<AuthGuard component={VentureDetails}/>} />
+              <Route path="/creators" element={<AuthGuard component={Creators}/>} />
+              <Route path="/creators/:id" element={<AuthGuard component={CreatorDetails}/>} />
+              <Route path="/contracts/:id" element={<AuthGuard component={SmartContractDetails}/>} />
+              <Route path="/settings" element={<AuthGuard component={Settings}/>} />
+            </Routes>
+          </div>
+        </main>
+      </div>
+    </Router>
   );
 }
 
