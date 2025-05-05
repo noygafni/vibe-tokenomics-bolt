@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Save, Plus, X, Wallet, Briefcase, Users } from 'lucide-react';
+import { Save, X, Wallet, Briefcase, Users } from 'lucide-react';
 import { useVentureStore } from '../store/useVentureStore';
-import type { Venture, MemberRole } from '../types/venture';
-import { ImageUpload } from './ImageUpload';
+import type { Venture } from '../types/venture';
+// import { ImageUpload } from './ImageUpload';
 import { getMemberColor } from '../utils/colors';
 import { FoundersListForm } from './FoundersListForm';
 
