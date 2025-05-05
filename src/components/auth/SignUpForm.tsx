@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UserPlus } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import {useSupabase} from '../../hooks/useSupabase';
 
 interface SignUpFormProps {
   onSignUpComplete: () => void;
@@ -11,6 +11,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUpComplete }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const supabase = useSupabase()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +76,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUpComplete }) => {
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex items-center justify-center gap-2 py-2 bg-coral-500 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-2 py-2 bg-blue-gray-400 text-white rounded-xl hover:bg-coral-600 disabled:opacity-50"
       >
         {loading ? (
           <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white" />

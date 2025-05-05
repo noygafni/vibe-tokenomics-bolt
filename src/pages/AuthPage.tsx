@@ -6,18 +6,18 @@ import { SignUpForm } from '../components/auth/SignUpForm';
 import { OnboardingForm } from '../components/auth/OnboardingForm';
 
 export const AuthPage: React.FC = () => {
-  const { user } = useAuth();
+  const { userDetails, isLoggedIn } = useAuth();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [view, setView] = useState<'sign_in' | 'sign_up'>('sign_in');
 
   useEffect(() => {
     // Check if user exists but doesn't have a username set
-    if (user && !user.user_metadata.username) {
+    if (!!isLoggedIn && !userDetails?.user_metadata?.username) {
       setShowOnboarding(true);
     }
-  }, [user]);
+  }, [userDetails]);
 
-  if (user && !showOnboarding) {
+  if (isLoggedIn && !showOnboarding) {
     return <Navigate to="/" replace />;
   }
 
