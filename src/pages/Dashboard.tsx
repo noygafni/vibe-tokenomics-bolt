@@ -30,7 +30,7 @@ const assets = [
 function Dashboard() {
   const navigate = useNavigate();
   const supabase = useSupabase();
-  const { ventures, loading: isLoading, error: venturesError } = useVentures();
+  const { ventures, loading: isLoading, error: venturesError, refetch } = useVentures();
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,6 +42,7 @@ function Dashboard() {
     description: "",
     category: "",
     v_token_amount: 0,
+    end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // Default to 1 year from now
   });
 
   useEffect(() => {
@@ -96,6 +97,28 @@ function Dashboard() {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      let image_url = null;
+      if (imageFile) {
+        try {
+          const fileExt = imageFile.name.split(".").pop();
+          const fileName = `${Math.random()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from("venture-images")
+            .upload(fileName, imageFile);
+
+          if (uploadError) {
+            console.warn("Failed to upload image:", uploadError);
+          } else {
+            const {
+              data: { publicUrl },
+            } = supabase.storage.from("venture-images").getPublicUrl(fileName);
+            image_url = publicUrl;
+          }
+        } catch (err) {
+          console.warn("Error uploading image:", err);
+        }
+      }
+
       const { error: insertError } = await supabase
         .from("ventures")
         .insert({
@@ -103,9 +126,13 @@ function Dashboard() {
           description: formData.description,
           category: formData.category,
           v_token_amount: formData.v_token_amount,
+          end_date: formData.end_date,
+          image_url,
         });
 
       if (insertError) throw insertError;
+
+      await refetch();
 
       setIsCreating(false);
       setFormData({
@@ -113,6 +140,7 @@ function Dashboard() {
         description: "",
         category: "",
         v_token_amount: 0,
+        end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       });
       setImageFile(null);
       setPreviewUrl("");

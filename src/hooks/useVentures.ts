@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from './useSupabase';
 import { Venture, User } from '../types/models';
 
@@ -8,64 +8,79 @@ export const useVentures = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchVentures = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch ventures
+      const { data: venturesData, error: venturesError } = await supabase
+        .from('ventures')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (venturesError) throw venturesError;
+
+      // For each venture, fetch its members
+      const venturesWithMembers = await Promise.all(
+        venturesData.map(async (venture: any) => {
+          // First get user_to_venture data
+          const { data: userToVentureData, error: membersError } = await supabase
+            .from('user_to_venture')
+            .select('user_id, type')
+            .eq('venture_id', venture.id);
+
+          if (membersError) throw membersError;
+
+          // Then get profiles for each user
+          const members = await Promise.all(
+            userToVentureData?.map(async (utv: any) => {
+              // Get the user's profile
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('name, avatar_url, role')
+                .eq('id', utv.user_id)
+                .single();
+
+              if (profileError) {
+                console.error('Error fetching profile:', profileError);
+                return null;
+              }
+
+              if (!profileData) {
+                console.warn('No profile found for user:', utv.user_id);
+                return null;
+              }
+
+              return {
+                id: utv.user_id,
+                name: profileData.name,
+                image_url: profileData.avatar_url,
+                role: profileData.role,
+                type: utv.type
+              };
+            }) || []
+          );
+
+          // Filter out any null members (failed profile fetches)
+          const validMembers = members.filter(member => member !== null);
+
+          return {
+            ...venture,
+            members: validMembers,
+          } as Venture;
+        })
+      );
+
+      setVentures(venturesWithMembers);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while fetching ventures');
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
   useEffect(() => {
-    const fetchVentures = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // Fetch ventures
-        const { data: venturesData, error: venturesError } = await supabase
-          .from('ventures')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (venturesError) throw venturesError;
-
-        // For each venture, fetch its members
-        const venturesWithMembers = await Promise.all(
-          venturesData.map(async (venture: any) => {
-            const { data: userToVentureData, error: membersError } = await supabase
-              .from('user_to_venture')
-              .select(`
-                user_id,
-                users (
-                  id,
-                  name,
-                  email,
-                  image_url,
-                  created_at,
-                  role
-                )
-              `)
-              .eq('venture_id', venture.id);
-
-            if (membersError) throw membersError;
-
-            const members = userToVentureData?.map((utv: any) => ({
-              id: utv.users.id,
-              name: utv.users.name,
-              email: utv.users.email,
-              image_url: utv.users.image_url,
-              created_at: utv.users.created_at,
-              role: utv.users.role
-            })) || [];
-
-            return {
-              ...venture,
-              members,
-            } as Venture;
-          })
-        );
-
-        setVentures(venturesWithMembers);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred while fetching ventures');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchVentures();
 
     // Subscribe to changes in the ventures table
@@ -87,7 +102,7 @@ export const useVentures = () => {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, fetchVentures]);
 
-  return { ventures, loading, error };
+  return { ventures, loading, error, refetch: fetchVentures };
 }; 

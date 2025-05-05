@@ -1,28 +1,45 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { User } from "@supabase/supabase-js"
 import { useSupabase } from "./useSupabase"
 
 export const useAuth = () => {
     const supabase = useSupabase()
-    const [userDetails, setUserDetails] = useState<User>({} as User)
-    const isLoggedIn = useMemo(()=>!!userDetails?.id,[userDetails])
+    const [authState, setAuthState] = useState<{ user: User | null; isLoggedIn: boolean }>({
+        user: null,
+        isLoggedIn: false
+    })
 
-    useEffect(()=>{
+    useEffect(() => {
+        // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setUserDetails(session?.user!);
-          });
-    },[])
+            setAuthState({
+                user: session?.user ?? null,
+                isLoggedIn: !!session?.user
+            })
+        })
+
+        // Subscribe to auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            setAuthState({
+                user: session?.user ?? null,
+                isLoggedIn: !!session?.user
+            })
+        })
+
+        // Cleanup subscription
+        return () => {
+            subscription.unsubscribe()
+        }
+    }, [supabase])
 
     const signOut = async () => {
         await supabase.auth.signOut()
-        console.log('signout')
-        setUserDetails({} as User)
-        // window.location.reload()
+        setAuthState({ user: null, isLoggedIn: false })
     }
 
-    console.log(userDetails)
-
     return {
-        userDetails, isLoggedIn, signOut, setUserDetails
+        userDetails: authState.user,
+        isLoggedIn: authState.isLoggedIn,
+        signOut
     }
 }
