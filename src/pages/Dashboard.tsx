@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { AlertCircle, Plus, X, Upload, Loader2, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// import { Venture } from "../types/models.ts";
+import { Venture } from "../types/models.ts";
 import bg1 from "../assets/bg1.png";
 import profile from "../assets/asset12.png";
 import aToken from "../assets/a-token.png";
