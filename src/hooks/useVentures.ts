@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from './useSupabase';
-import { Venture, User } from '../types/models';
+import { Venture } from '../types/models';
 
 export const useVentures = () => {
   const supabase = useSupabase();

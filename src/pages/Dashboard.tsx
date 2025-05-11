@@ -33,13 +33,16 @@ function Dashboard() {
   const { ventures, loading: isLoading, error: venturesError, refetch } = useVentures();
   const [isCreating, setIsCreating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [error, setError] = useState<string | null>(venturesError);
+  // const [isAuthenticated, setIsAuthenticated] = useState(true); // TODO: FALSIFY
+  // const [error, setError] = useState<string | null>(venturesError);
+  const [isAuthenticated, setIsAuthenticated] = useState(false); // TODO: FALSIFY
+  const [error, setError] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    image_url: '',
     category: "",
     v_token_amount: 0,
     end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // Default to 1 year from now
@@ -52,7 +55,9 @@ function Dashboard() {
   const checkAuth = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      // setIsAuthenticated(!!session);
       setIsAuthenticated(!!session);
+      // setIsAuthenticated(true);
     } catch (err) {
       console.error("Error checking auth:", err);
       setError("Authentication failed");
@@ -61,7 +66,7 @@ function Dashboard() {
 
   const handleSignIn = async () => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: 'alice@example.com',
         password: 'password123'
       });
@@ -95,7 +100,7 @@ function Dashboard() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      // if (!user) throw new Error("Not authenticated");
 
       let image_url = null;
       if (imageFile) {
@@ -138,6 +143,7 @@ function Dashboard() {
       setFormData({
         name: "",
         description: "",
+        image_url: '',
         category: "",
         v_token_amount: 0,
         end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),

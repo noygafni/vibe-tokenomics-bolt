@@ -9,7 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import ModernTreasury from "npm:modern-treasury";
 import { VentureRequest } from "./types.ts";
 
-const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseUrl = Deno.env.get("SITE_CLIENT")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 console.log('supabase url: ', supabaseUrl);
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   2. Make an HTTP request:
 
-  curl -i --location --request POST 'http://localhost:54321/functions/v1/add_venture' \
+  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/add_venture' \
     --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0' \
     --header 'Content-Type: application/json' \
     --data '{"name":"Functions"}'

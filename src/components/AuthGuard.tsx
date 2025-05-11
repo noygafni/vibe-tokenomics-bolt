@@ -8,7 +8,8 @@ export interface AuthGuardProps {
 
 export const AuthGuard = ({component: Component}: AuthGuardProps) => {
     const {isLoggedIn} = useAuth()
-    if (!isLoggedIn) {
+    // if (!isLoggedIn) {
+    if (!isLoggedIn) { // TODO CHANGE HERE TO ENABLE AUTH
         return <Navigate to="/login"/>
     }
 
